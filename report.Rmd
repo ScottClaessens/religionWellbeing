@@ -1,0 +1,19 @@
+---
+title: "Title"
+author: Scott Claessens
+date: "`r format(Sys.Date())`"
+---
+
+```{r options, echo=F}
+options(width = 200)
+```
+
+The purpose of this document is to...
+
+
+# Session Info
+
+```{r}
+sessionInfo()
+```
+
