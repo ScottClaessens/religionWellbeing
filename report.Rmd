@@ -10,22 +10,30 @@ options(width = 200)
 
 The purpose of this document is to report the results of a blinded analysis relating religiosity to wellbeing.
 
-_NOTE: this is dummy code that (1) only uses a small slice of the dataset to speed up computation, (2) uses `rel_5` as the religion predictor, (3) uses `cnorm_1` as the cultural norm predictor, and (4) does not include any country-level matrices. We will obviously use the full real dataset in the actual analysis, the religion and cultural norm predictors are still up for debate in our team, and we need to decide how / if to incorporate the country-level matrices. But this report outlines the proposed analysis workflow._
+_NOTE: this is dummy code that only uses a small slice of the dataset to speed up computation._
 
-# Data organisation
+# Initial religion PCA and data organisation
 
-For these analyses, we organise the data in long format.
+To find a single predictor for our models that captures "religiosity", we first run a principal components analysis with all nine of the religion items to see how many factors it produces.
+
+A scree plot of this PCA reveals that a single factor is enough.
+
+```{r echo=F}
+readd(scree)
+```
+
+For modelling, we then (1) add this principal component to the dataset as `religion`, (2) create a composite variable of `cnorm_1` and `cnorm_2` called `cnorm`, and (3) organise the data in long format. The data then look like this:
 
 ```{r data}
-readd(d) %>%
-  select(wellbeing, item, subscale, rel_5, cnorm_1, subject, country) %>%
+readd(dLong) %>%
+  select(wellbeing, item, subscale, religion, cnorm, 
+         subject, country, age, gender, gdp_scaled) %>%
   head(n = 20)
 ```
 
-
 # Question 1: Does religiosity predict wellbeing?
 
-First, we fit a "null" random-intercept-only ordinal multilevel model. This model includes random intercepts for wellbeing item nested within wellbeing subscale, and for participant nested with country: `wellbeing ~ 1 + (1 | subscale/item) + (1 | country/subject)`.
+First, we fit a "null" random-intercept-only ordinal multilevel model. This model includes demographic control variables (age, gender, and GDP) and random intercepts for wellbeing items nested within wellbeing subscales, and for participants within countries: `wellbeing ~ 1 + (1 | subscale/item) + (1 | country) + (1 | subject) + age + gender + gdp_scaled`.
 
 Here's the summary for this model.
 
@@ -33,11 +41,11 @@ Here's the summary for this model.
 readd(summary1)
 ```
 
-We get cutpoints for the ordinal intercept, and standard deviations from the random effects.
+We get cutpoints for the ordinal intercept, main effects for the demographic control variables, and standard deviations from the random effects.
 
-Next, we add a fixed effect for the religiosity predictor, as well as a random slope grouped by wellbeing item nested within subscale: `wellbeing ~ 1 + rel_5 + (1 + rel_5 | subscale/item) + (1 | country/participant)`. This gives us a different effect of religion for every wellbeing subscale and, at a lower level, every wellbeing item.
+Next, we add a fixed effect for the religiosity predictor, as well (1) as a random slope grouped by wellbeing item nested within subscale, and (2) a random slope grouped by country: `wellbeing ~ 1 + religion + (1 + religion | subscale/item) + (1 + religion | country) + (1 | subject) + age + gender + gdp_scaled`. This gives us a different effect of religion for every wellbeing subscale, every wellbeing item, and every country.
 
-Does this second model improve the fit? We would expect it to if `rel_5` is a good predictor of wellbeing.
+Does this second model improve the fit? We would expect it to if `religion` is a good predictor of wellbeing.
 
 ```{r looCompare1, echo=F}
 readd(looCompare1)
@@ -49,7 +57,7 @@ In this dummy example, the fit is worse. What's the summary for this model?
 readd(summary2)
 ```
 
-The fixed effect of `rel_5` is of interest. The 95% CIs straddle zero, meaning there is no effect.
+The fixed effect of `religion` is of interest. The 95% CIs straddle zero, meaning there is no effect.
 
 Let's visualise the effect of religiosity on _overall_ wellbeing.
 
@@ -63,15 +71,21 @@ We can also split this effect into separate wellbeing subscales...
 readd(f2.1)
 ```
 
-... and even individual items.
+... and by individual wellbeing items...
 
 ```{r forest2.2, echo=F}
 readd(f2.2)
 ```
 
+... and by country.
+
+```{r forest2.3, echo=F}
+readd(f2.3)
+```
+
 # Question 2: Is there an interaction with perceived cultural norms?
 
-We then add a fixed interaction effect with `cnorm_1`, and allow this interaction effect to vary as a random slope over wellbeing items nested within subscales: `wellbeing ~ 1 + rel_5*cnorm_1 + (1 + rel_5*cnorm_1 | subscale/item) + (1 | country/subject)`. In this model, every wellbeing subscale (and every item) has its own interaction between religion and cultural norms.
+We then add a fixed interaction effect with `cnorm`, and allow this interaction effect to vary as a random slope over wellbeing items nested within subscales and as a random slope over countries: `wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + (1 + religion*cnorm | country) + (1 | subject) + age + gender + gdp_scaled`. In this model, every wellbeing subscale, every individual wellbeing item, and every country has its own interaction between religion and cultural norms.
 
 Does this model improve the fit over the previous model? If there's an interaction effect, we would expect it to.
 
@@ -87,7 +101,7 @@ Here's the summary for this model.
 readd(summary3)
 ```
 
-The 95% CIs for the fixed effect `rel_5:cnorm_1` straddle zero.
+The 95% CIs for the fixed effect `religion:cnorm` straddle zero.
 
 Plot the interaction.
 
@@ -101,10 +115,16 @@ This clearly shows no interaction effect. We can also get forest plots of the in
 readd(f3.1)
 ```
 
-... and individual items.
+... individual wellbeing items...
 
 ```{r forest3.2, echo=F}
 readd(f3.2)
+```
+
+... and countries.
+
+```{r forest3.3, echo=F}
+readd(f3.3)
 ```
 
 # Session Info
