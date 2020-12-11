@@ -2,6 +2,10 @@
 title: "Religion and Wellbeing - Blinded Analysis"
 author: Scott Claessens
 date: "`r format(Sys.Date())`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
 ---
 
 ```{r options, echo=F}
@@ -18,32 +22,37 @@ To find a single predictor for our models that captures "religiosity", we first 
 
 A scree plot of this PCA reveals that a single factor is enough.
 
-```{r echo=F}
+```{r scree, echo=F}
 readd(scree)
 ```
 
-For modelling, we then (1) add this principal component to the dataset as `religion`, (2) create a composite variable of `cnorm_1` and `cnorm_2` called `cnorm`, and (3) organise the data in long format. The data then look like this:
+For modelling, we then (1) add this principal component to the dataset as `religion`, (2) create a composite variable of `cnorm_1` and `cnorm_2` called `cnorm`, and (3) organise the data in long format. The data then look like this (only the top 20 rows):
 
-```{r data}
+```{r data, echo=F}
 readd(dLong) %>%
   select(wellbeing, item, subscale, religion, cnorm, 
-         subject, country, age, gender, gdp_scaled) %>%
-  head(n = 20)
+         subject, country, denomination, age, gender, gdp_scaled) %>%
+  head(n = 20) %>%
+  kable() %>%
+  kable_styling() %>%
+  scroll_box(width = "100%")
 ```
 
-# Question 1: Does religiosity predict wellbeing?
+# Models without controlling for spatial autocorrelation for countries
 
-First, we fit a "null" random-intercept-only ordinal multilevel model. This model includes demographic control variables (age, gender, and GDP) and random intercepts for wellbeing items nested within wellbeing subscales, and for participants within countries: `wellbeing ~ 1 + (1 | subscale/item) + (1 | country) + (1 | subject) + age + gender + gdp_scaled`.
+## Question 1: Does religiosity predict wellbeing?
+
+First, we fit a "null" random-intercept-only ordinal multilevel model. This model includes demographic control variables (age, gender, and GDP) and random intercepts for wellbeing items nested within wellbeing subscales, and for participants within countries and denominations: `wellbeing ~ 1 + (1 | subscale/item) + (1 | iso) + (1 | denomination) + (1 | subject) + age + gender + gdp_scaled`.
 
 Here's the summary for this model.
 
-```{r summary1, echo=F}
-readd(summary1)
+```{r summary1.1, echo=F}
+readd(summary1.1)
 ```
 
 We get cutpoints for the ordinal intercept, main effects for the demographic control variables, and standard deviations from the random effects.
 
-Next, we add a fixed effect for the religiosity predictor, as well (1) as a random slope grouped by wellbeing item nested within subscale, and (2) a random slope grouped by country: `wellbeing ~ 1 + religion + (1 + religion | subscale/item) + (1 + religion | country) + (1 | subject) + age + gender + gdp_scaled`. This gives us a different effect of religion for every wellbeing subscale, every wellbeing item, and every country.
+Next, we add a fixed effect for the religiosity predictor, as well as (1) a random slope grouped by wellbeing item nested within subscale, (2) a random slope grouped by country, and (3) a random slope grouped by denomination: `wellbeing ~ 1 + religion + (1 + religion | subscale/item) + (1 + religion | iso) + (1 + religion | denomination) + (1 | subject) + age + gender + gdp_scaled`. This gives us a different effect of religion for every wellbeing subscale, every wellbeing item, every country, and every religious denomination.
 
 Does this second model improve the fit? We would expect it to if `religion` is a good predictor of wellbeing.
 
@@ -51,41 +60,47 @@ Does this second model improve the fit? We would expect it to if `religion` is a
 readd(looCompare1)
 ```
 
-In this dummy example, the fit is worse. What's the summary for this model?
+What's the summary for this model?
 
-```{r summary2, echo=F}
-readd(summary2)
+```{r summary1.2, echo=F}
+readd(summary1.2)
 ```
 
-The fixed effect of `religion` is of interest. The 95% CIs straddle zero, meaning there is no effect.
+The fixed effect of `religion` is of interest.
 
 Let's visualise the effect of religiosity on _overall_ wellbeing.
 
-```{r cond2, echo=F}
-readd(cond2)
+```{r cond1.2, echo=F}
+readd(cond1.2)
 ```
 
 We can also split this effect into separate wellbeing subscales...
 
-```{r forest2.1, echo=F}
-readd(f2.1)
+```{r forest1.2.1, echo=F}
+readd(f1.2.1)
 ```
 
 ... and by individual wellbeing items...
 
-```{r forest2.2, echo=F}
-readd(f2.2)
+```{r forest1.2.2, echo=F}
+readd(f1.2.2)
 ```
 
-... and by country.
+... and by country...
 
-```{r forest2.3, echo=F}
-readd(f2.3)
+```{r forest1.2.3, echo=F}
+readd(f1.2.3)
 ```
 
-# Question 2: Is there an interaction with perceived cultural norms?
+... and by religious denomination.
 
-We then add a fixed interaction effect with `cnorm`, and allow this interaction effect to vary as a random slope over wellbeing items nested within subscales and as a random slope over countries: `wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + (1 + religion*cnorm | country) + (1 | subject) + age + gender + gdp_scaled`. In this model, every wellbeing subscale, every individual wellbeing item, and every country has its own interaction between religion and cultural norms.
+```{r forest1.2.4, echo=F}
+readd(f1.2.4)
+```
+
+## Question 2: Is there an interaction with perceived cultural norms?
+
+We then add a fixed interaction effect with `cnorm`, and allow this interaction effect to vary as a random slope over wellbeing items nested within subscales, as a random slope over countries, and as a random slope over denominations: `wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + (1 + religion*cnorm | iso) + (1 + religion*cnorm | denomination) + (1 | subject) + age + gender + gdp_scaled`. In this model, every wellbeing subscale, every individual wellbeing item, every country, and every denomination has its own interaction between religion and cultural norms.
 
 Does this model improve the fit over the previous model? If there's an interaction effect, we would expect it to.
 
@@ -93,42 +108,154 @@ Does this model improve the fit over the previous model? If there's an interacti
 readd(looCompare2)
 ```
 
-Again, the fit is worse.
-
 Here's the summary for this model.
 
-```{r summary3, echo=F}
-readd(summary3)
+```{r summary1.3, echo=F}
+readd(summary1.3)
 ```
 
-The 95% CIs for the fixed effect `religion:cnorm` straddle zero.
+The fixed effect `religion:cnorm` is of interest.
 
 Plot the interaction.
 
-```{r cond3, echo=F}
-readd(cond3)
+```{r cond1.3, echo=F}
+readd(cond1.3)
 ```
 
-This clearly shows no interaction effect. We can also get forest plots of the interaction parameter for wellbeing subscales...
+We can also get forest plots of the interaction parameter for wellbeing subscales...
 
-```{r forest3.1, echo=F}
-readd(f3.1)
+```{r forest1.3.1, echo=F}
+readd(f1.3.1)
 ```
 
-... individual wellbeing items...
+... for individual wellbeing items...
 
-```{r forest3.2, echo=F}
-readd(f3.2)
+```{r forest1.3.2, echo=F}
+readd(f1.3.2)
 ```
 
-... and countries.
+... for countries...
 
-```{r forest3.3, echo=F}
-readd(f3.3)
+```{r forest1.3.3, echo=F}
+readd(f1.3.3)
+```
+
+... and for religious denominations.
+
+```{r forest1.3.4, echo=F}
+readd(f1.3.4)
+```
+
+# Models controlling for spatial autocorrelation for countries
+
+Do our results change when we control for spatial autocorrelation among countries? Some countries may have similar wellbeing scores simply because they are closer together.
+
+## Question 1: Does religiosity predict wellbeing?
+
+First, we fit a "null" random-intercept-only ordinal multilevel model, controlling for spatial autocorrelation for country random intercepts: `wellbeing ~ 1 + (1 | subscale/item) + (1 | gr(iso, cov = geo) + (1 | denomination) + (1 | subject) + age + gender + gdp_scaled`.
+
+Here's the summary for this model.
+
+```{r summary2.1, echo=F}
+readd(summary2.1)
+```
+
+Next, we add the religiosity predictor: `wellbeing ~ 1 + religion + (1 + religion | subscale/item) + (1 | gr(iso, cov = geo, id = "iso)) + (0 + religion | gr(iso, id = "iso")) + (1 + religion | denomination) + (1 | subject) + age + gender + gdp_scaled`. We only allow the random intercept for countries (not the random slope) to covary according to geographic distance, but still model the random intercept and random slope as correlated.
+
+Does this second model improve the fit? We would expect it to if `religion` is a good predictor of wellbeing.
+
+```{r looCompare3, echo=F}
+readd(looCompare3)
+```
+
+What's the summary for this model?
+
+```{r summary2.2, echo=F}
+readd(summary2.2)
+```
+
+The fixed effect of `religion` is of interest.
+
+Let's visualise the effect of religiosity on _overall_ wellbeing, controlling for spatial autocorrelation.
+
+```{r cond2.2, echo=F}
+readd(cond2.2)
+```
+
+We can also split this effect into separate wellbeing subscales...
+
+```{r forest2.2.1, echo=F}
+readd(f2.2.1)
+```
+
+... and by individual wellbeing items...
+
+```{r forest2.2.2, echo=F}
+readd(f2.2.2)
+```
+
+... and by country...
+
+```{r forest2.2.3, echo=F}
+readd(f2.2.3)
+```
+
+... and by religious denomination.
+
+```{r forest2.2.4, echo=F}
+readd(f2.2.4)
+```
+
+## Question 2: Is there an interaction with perceived cultural norms?
+
+We then add an interaction effect with `cnorm`: `wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + (1 | gr(iso, cov = geo, id = "iso)) + (0 + religion*cnorm | gr(iso, id = "iso")) + (1 + religion*cnorm | denomination) + (1 | subject) + age + gender + gdp_scaled`. In this model, every wellbeing subscale, every individual wellbeing item, every country, and every denomination has its own interaction between religion and cultural norms.
+
+Does this model improve the fit over the previous model? If there's an interaction effect, we would expect it to.
+
+```{r looCompare4, echo=F}
+readd(looCompare4)
+```
+
+Here's the summary for this model.
+
+```{r summary2.3, echo=F}
+readd(summary2.3)
+```
+
+The fixed effect `religion:cnorm` is of interest.
+
+Plot the interaction.
+
+```{r cond2.3, echo=F}
+readd(cond2.3)
+```
+
+We can also get forest plots of the interaction parameter for wellbeing subscales...
+
+```{r forest2.3.1, echo=F}
+readd(f2.3.1)
+```
+
+... for individual wellbeing items...
+
+```{r forest2.3.2, echo=F}
+readd(f2.3.2)
+```
+
+... for countries...
+
+```{r forest2.3.3, echo=F}
+readd(f2.3.3)
+```
+
+... and for religious denominations.
+
+```{r forest2.3.4, echo=F}
+readd(f2.3.4)
 ```
 
 # Session Info
 
-```{r}
+```{r sessionInfo}
 sessionInfo()
 ```

@@ -2,16 +2,27 @@
 theme_set(theme_classic())
 
 # load wide data
-loadWideData <- function() {
+loadWideData <- function(file) {
+  # get iso codes
+  iso <- c("Australia" = "AU", "Belgium" = "BE", "Brazil" = "BR", "Canada" = "CA", "Chile" = "CL",
+           "China" = "CN", "Croatia" = "HR", "Denmark" = "DK", "France" = "FR", "Germany" = "DE",
+           "India" = "IN", "Ireland" = "IE", "Israel" = "IL", "Italy" = "IT", "Japan" = "JP",
+           "Lithuania" = "LT", "Morocco" = "MA", "Netherlands" = "NL", "Romania" = "RO",
+           "Singapore" = "SG", "Spain" = "ES", "Turkey" = "TR", "UK" = "GB", "US" = "US")
   # load data
-  read.csv("data/MARP_data_blinded.csv") %>%
-    # reduced slice of data for toy models (4 people per country)
-    group_by(country) %>%  # remove these 3
-    slice(1:4) %>%         # lines before
-    ungroup() %>%          # real analysis
+  read.csv(file) %>%
+    # fill in denomination
+    mutate(denomination = factor(ifelse(is.na(denomination), 
+                                        "No denomination specified",
+                                        denomination)),
+           iso = as.character(iso[country])) %>%
+    # reduced slice of data for toy models (1 person per country and denomination)
+    group_by(iso, denomination) %>%  # remove these 3
+    slice(1) %>%                         # lines before
+    ungroup() %>%                        # real analysis
     # remove participants who failed attention check
     filter(attention_check == 1) %>%
-    # standardise age and create cnorm composite
+    # standardise age, create cnorm composite, and fill denomination
     mutate(age = as.numeric(scale(age)),
            cnorm = (cnorm_1 + cnorm_2) / 2)
 }
@@ -50,34 +61,26 @@ pivotLong <- function(dWide, pca) {
     mutate(subscale = substr(item, 4, nchar(item) - 2))
 }
 
-# fit random-intercept-only model
-fitModel1 <- function(dLong) {
-  brm(wellbeing ~ 1 + (1 | subscale/item) + (1 | country) + (1 | subject) + age + gender + gdp_scaled,
-      data = dLong, family = cumulative,
+# load covariance matrix
+loadMat <- function(file) {
+  # define proximity function
+  proximity <- function(x) 1 - (x / max(x))
+  # get logged distance matrix
+  read_xlsx(file) %>%
+    # ISO as rownames
+    column_to_rownames("ISO") %>%
+    # as matrix
+    as.matrix() %>%
+    # get proximity
+    proximity()
+}
+
+# fit model
+fitModel <- function(dLong, formula, cov = NULL) {
+  brm(formula, data = dLong, data2 = cov, family = cumulative,
       prior = c(prior(normal(0, 2), class = Intercept), # prior choices from prior predictive checks
-                prior(exponential(3), class = sd)),     # these priors give every ordinal outcome (1-5) equal prior plausibility
-      iter = 3000, cores = 4,
-      control = list(adapt_delta = 0.99, max_treedepth = 15))
-}
-
-# fit random-intercept and random-slope model
-fitModel2 <- function(dLong) {
-  brm(wellbeing ~ 1 + religion + (1 + religion | subscale/item) + (1 + religion | country) + (1 | subject) + age + gender + gdp_scaled,
-      data = dLong, family = cumulative,
-      prior = c(prior(normal(0, 2), class = Intercept),
-                prior(normal(0, 0.5), class = b),
-                prior(exponential(3), class = sd)),
-      iter = 3000, cores = 4,
-      control = list(adapt_delta = 0.99, max_treedepth = 15))
-}
-
-# fit interaction model
-fitModel3 <- function(dLong) {
-  brm(wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + (1 + religion*cnorm | country) + (1 | subject) + age + gender + gdp_scaled,
-      data = dLong, family = cumulative,
-      prior = c(prior(normal(0, 2), class = Intercept),
-                prior(normal(0, 0.5), class = b),
-                prior(exponential(3), class = sd)),
+                prior(normal(0, 0.5), class = b),       # these priors give every ordinal outcome (1-5)
+                prior(exponential(3), class = sd)),     # equal prior plausibility
       iter = 3000, cores = 4,
       control = list(adapt_delta = 0.99, max_treedepth = 15))
 }
@@ -88,80 +91,15 @@ cond <- function(model, effects = NULL) {
     scale_y_continuous(name = "Wellbeing score (1-5)", limits = c(1, 5))
 }
 
-# forest plot 1 for model 2
-forest2.1 <- function(m2) {
-  m2 %>%
-    spread_draws(b_religion, r_subscale[subscale,parameter]) %>%
-    filter(parameter == "religion") %>%
-    mutate(subscale_mean = b_religion + r_subscale) %>%
-    ggplot(aes(y = subscale, x = subscale_mean)) +
+# forest plot
+forest <- function(model, parameter, group) {
+  model %>%
+    spread_draws(!!sym(paste0("b_", parameter)), 
+                 (!!sym(paste0("r_", group)))[grp,par]) %>%
+    filter(par == parameter) %>%
+    mutate(mean = !!sym(paste0("b_", parameter)) + !!sym(paste0("r_", group))) %>%
+    ggplot(aes(y = grp, x = mean)) +
     stat_halfeye() +
     geom_vline(xintercept = 0, linetype = "dashed") +
-    labs(y = NULL, x = "religion parameter") +
-    ggtitle("Effect of religion split by wellbeing subscale")
-}
-
-# forest plot 2 for model 2
-forest2.2 <- function(m2) {
-  m2 %>%
-    spread_draws(b_religion, `r_subscale:item`[item,parameter]) %>%
-    filter(parameter == "religion") %>%
-    mutate(item_mean = b_religion + `r_subscale:item`) %>%
-    ggplot(aes(y = item, x = item_mean)) +
-    stat_halfeye() +
-    geom_vline(xintercept = 0, linetype = "dashed") +
-    labs(y = NULL, x = "religion parameter") +
-    ggtitle("Effect of religion split by wellbeing item")
-}
-
-# forest plot 3 for model 2
-forest2.3 <- function(m2) {
-  m2 %>%
-    spread_draws(b_religion, `r_country`[country,parameter]) %>%
-    filter(parameter == "religion") %>%
-    mutate(country_mean = b_religion + `r_country`) %>%
-    ggplot(aes(y = fct_rev(country), x = country_mean)) +
-    stat_halfeye() +
-    geom_vline(xintercept = 0, linetype = "dashed") +
-    labs(y = NULL, x = "religion parameter") +
-    ggtitle("Effect of religion split by country")
-}
-
-# forest plot 1 for model 3
-forest3.1 <- function(m3) {
-  m3 %>%
-    spread_draws(`b_religion:cnorm`, r_subscale[subscale,parameter]) %>%
-    filter(parameter == "religion:cnorm") %>%
-    mutate(subscale_mean = `b_religion:cnorm` + r_subscale) %>%
-    ggplot(aes(y = subscale, x = subscale_mean)) +
-    stat_halfeye() +
-    geom_vline(xintercept = 0, linetype = "dashed") +
-    labs(y = NULL, x = "Interaction parameter") +
-    ggtitle("Interaction effect split by wellbeing subscale")
-}
-
-# forest plot 2 for model 3
-forest3.2 <- function(m3) {
-  m3 %>%
-    spread_draws(`b_religion:cnorm`, `r_subscale:item`[item,parameter]) %>%
-    filter(parameter == "religion:cnorm") %>%
-    mutate(item_mean = `b_religion:cnorm` + `r_subscale:item`) %>%
-    ggplot(aes(y = item, x = item_mean)) +
-    stat_halfeye() +
-    geom_vline(xintercept = 0, linetype = "dashed") +
-    labs(y = NULL, x = "Interaction parameter") +
-    ggtitle("Interaction effect split by wellbeing item")
-}
-
-# forest plot 3 for model 3
-forest3.3 <- function(m3) {
-  m3 %>%
-    spread_draws(`b_religion:cnorm`, `r_country`[country,parameter]) %>%
-    filter(parameter == "religion:cnorm") %>%
-    mutate(country_mean = `b_religion:cnorm` + `r_country`) %>%
-    ggplot(aes(y = fct_rev(country), x = country_mean)) +
-    stat_halfeye() +
-    geom_vline(xintercept = 0, linetype = "dashed") +
-    labs(y = NULL, x = "Interaction parameter") +
-    ggtitle("Interaction effect split by country")
+    labs(y = NULL, x = parameter)
 }
