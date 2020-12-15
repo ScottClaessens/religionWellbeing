@@ -1,5 +1,5 @@
 ---
-title: "Religion and Wellbeing - Blinded Analysis"
+title: "Religion and Wellbeing"
 author: Scott Claessens
 date: "`r format(Sys.Date())`"
 output:
@@ -11,10 +11,6 @@ output:
 ```{r options, echo=F}
 options(width = 200)
 ```
-
-The purpose of this document is to report the results of a blinded analysis relating religiosity to wellbeing.
-
-_NOTE: this is dummy code that only uses a small slice of the dataset to speed up computation._
 
 # Initial religion PCA and data organisation
 
@@ -38,11 +34,11 @@ readd(dLong) %>%
   scroll_box(width = "100%")
 ```
 
-# Models without controlling for spatial autocorrelation for countries
+# Models without controlling for linguistic distance between countries
 
 ## Question 1: Does religiosity predict wellbeing?
 
-First, we fit a "null" random-intercept-only ordinal multilevel model. This model includes demographic control variables (age, gender, and GDP) and random intercepts for wellbeing items nested within wellbeing subscales, and for participants within countries and denominations: `wellbeing ~ 1 + (1 | subscale/item) + (1 | iso) + (1 | denomination) + (1 | subject) + age + gender + gdp_scaled`.
+First, we fit a "null" random-intercept-only ordinal Bayesian multilevel model. This model includes demographic control variables (age, gender, and GDP) and random intercepts for wellbeing items nested within wellbeing subscales, and for participants within countries and denominations: `wellbeing ~ 1 + (1 | subscale/item) + (1 | iso) + (1 | denomination) + (1 | subject) + age + gender + gdp_scaled`.
 
 Here's the summary for this model.
 
@@ -146,13 +142,13 @@ readd(f1.3.3)
 readd(f1.3.4)
 ```
 
-# Models controlling for spatial autocorrelation for countries
+# Models controlling for linguistic distance between countries
 
-Do our results change when we control for spatial autocorrelation among countries? Some countries may have similar wellbeing scores simply because they are closer together.
+Do our results change when we control for linguistic distance between countries? Some countries may have similar wellbeing scores simply because they are culturally similar.
 
 ## Question 1: Does religiosity predict wellbeing?
 
-First, we fit a "null" random-intercept-only ordinal multilevel model, controlling for spatial autocorrelation for country random intercepts: `wellbeing ~ 1 + (1 | subscale/item) + (1 | gr(iso, cov = geo) + (1 | denomination) + (1 | subject) + age + gender + gdp_scaled`.
+First, we fit a "null" random-intercept-only ordinal Bayesian multilevel model, controlling for linguistic distance for country random intercepts: `wellbeing ~ 1 + (1 | subscale/item) + (1 | gr(iso, cov = ling) + (1 | denomination) + (1 | subject) + age + gender + gdp_scaled`.
 
 Here's the summary for this model.
 
@@ -160,7 +156,7 @@ Here's the summary for this model.
 readd(summary2.1)
 ```
 
-Next, we add the religiosity predictor: `wellbeing ~ 1 + religion + (1 + religion | subscale/item) + (1 | gr(iso, cov = geo, id = "iso)) + (0 + religion | gr(iso, id = "iso")) + (1 + religion | denomination) + (1 | subject) + age + gender + gdp_scaled`. We only allow the random intercept for countries (not the random slope) to covary according to geographic distance, but still model the random intercept and random slope as correlated.
+Next, we add the religiosity predictor: `wellbeing ~ 1 + religion + (1 + religion | subscale/item) + (1 | gr(iso, cov = ling, id = "iso")) + (0 + religion | gr(iso, id = "iso")) + (1 + religion | denomination) + (1 | subject) + age + gender + gdp_scaled`. We only allow the random intercept for countries (not the random slope) to covary according to linguistic distance, but still model the random intercept and random slope as correlated.
 
 Does this second model improve the fit? We would expect it to if `religion` is a good predictor of wellbeing.
 
@@ -176,7 +172,7 @@ readd(summary2.2)
 
 The fixed effect of `religion` is of interest.
 
-Let's visualise the effect of religiosity on _overall_ wellbeing, controlling for spatial autocorrelation.
+Let's visualise the effect of religiosity on _overall_ wellbeing, controlling for linguistic distance.
 
 ```{r cond2.2, echo=F}
 readd(cond2.2)
@@ -208,7 +204,7 @@ readd(f2.2.4)
 
 ## Question 2: Is there an interaction with perceived cultural norms?
 
-We then add an interaction effect with `cnorm`: `wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + (1 | gr(iso, cov = geo, id = "iso)) + (0 + religion*cnorm | gr(iso, id = "iso")) + (1 + religion*cnorm | denomination) + (1 | subject) + age + gender + gdp_scaled`. In this model, every wellbeing subscale, every individual wellbeing item, every country, and every denomination has its own interaction between religion and cultural norms.
+We then add an interaction effect with `cnorm`: `wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + (1 | gr(iso, cov = ling, id = "iso)) + (0 + religion*cnorm | gr(iso, id = "iso")) + (1 + religion*cnorm | denomination) + (1 | subject) + age + gender + gdp_scaled`. In this model, every wellbeing subscale, every individual wellbeing item, every country, and every denomination has its own interaction between religion and cultural norms.
 
 Does this model improve the fit over the previous model? If there's an interaction effect, we would expect it to.
 

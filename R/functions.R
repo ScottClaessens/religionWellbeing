@@ -11,18 +11,24 @@ loadWideData <- function(file) {
            "Singapore" = "SG", "Spain" = "ES", "Turkey" = "TR", "UK" = "GB", "US" = "US")
   # load data
   read.csv(file) %>%
-    # fill in denomination
-    mutate(denomination = factor(ifelse(is.na(denomination), 
-                                        "No denomination specified",
-                                        denomination)),
-           iso = as.character(iso[country])) %>%
+    mutate(
+      # fill in denomination
+      # NOTE: we currently leave religious denomination groupings as they
+      # appear in the dataset, but we will create higher-level groupings
+      # if this approach creates model fitting functions
+      denomination = factor(ifelse(is.na(denomination), 
+                                   "No denomination specified",
+                                   denomination)),
+      # add iso codes to dataset
+      iso = factor(as.character(iso[country]))
+      ) %>%
     # reduced slice of data for toy models (1 person per country and denomination)
     group_by(iso, denomination) %>%  # remove these 3
-    slice(1) %>%                         # lines before
-    ungroup() %>%                        # real analysis
+    slice(1) %>%                     # lines before
+    ungroup() %>%                    # real analysis
     # remove participants who failed attention check
     filter(attention_check == 1) %>%
-    # standardise age, create cnorm composite, and fill denomination
+    # standardise age and create cnorm composite
     mutate(age = as.numeric(scale(age)),
            cnorm = (cnorm_1 + cnorm_2) / 2)
 }
@@ -63,26 +69,42 @@ pivotLong <- function(dWide, pca) {
 
 # load covariance matrix
 loadMat <- function(file) {
-  # define proximity function
-  proximity <- function(x) 1 - (x / max(x))
-  # get logged distance matrix
-  read_xlsx(file) %>%
+  out <-
+    # get linguistic proximity matrix
+    read_xlsx(file) %>%
     # ISO as rownames
     column_to_rownames("ISO") %>%
     # as matrix
     as.matrix() %>%
-    # get proximity
-    proximity()
+    # avoid rounding error
+    round(4)
+  # positive definite covariance matrix
+  # where covariance is linearly related
+  # to linguistic proximity
+  diag(out) <- 1
+  return(out)
 }
 
-# fit model
+# generic model fitting function
 fitModel <- function(dLong, formula, cov = NULL) {
-  brm(formula, data = dLong, data2 = cov, family = cumulative,
-      prior = c(prior(normal(0, 2), class = Intercept), # prior choices from prior predictive checks
-                prior(normal(0, 0.5), class = b),       # these priors give every ordinal outcome (1-5)
-                prior(exponential(3), class = sd)),     # equal prior plausibility
-      iter = 3000, cores = 4,
-      control = list(adapt_delta = 0.99, max_treedepth = 15))
+  brm(
+    # model formula
+    formula,
+    # fit to long data
+    data = dLong,
+    # covariance matrix for iso random intercepts
+    data2 = cov,
+    # cumulative family for ordinal model
+    family = cumulative,
+    # set identical priors for every model
+    prior = c(prior(normal(0, 2), class = Intercept), # prior choices from prior predictive checks
+              prior(normal(0, 0.5), class = b),       # these priors give every ordinal outcome (1-5)
+              prior(exponential(3), class = sd)),     # equal prior plausibility
+    # run for 3000 iterations (1500 warmup) with 4 cores
+    iter = 3000, cores = 4,
+    # additional control parameters for stan
+    control = list(adapt_delta = 0.99, max_treedepth = 15)
+  )
 }
 
 # plot conditional effects
@@ -94,10 +116,15 @@ cond <- function(model, effects = NULL) {
 # forest plot
 forest <- function(model, parameter, group) {
   model %>%
+    # use tidybayes to dynamically spread posterior samples
+    # for particular parameter-group combination
     spread_draws(!!sym(paste0("b_", parameter)), 
                  (!!sym(paste0("r_", group)))[grp,par]) %>%
+    # filter to parameter of interest
     filter(par == parameter) %>%
+    # get means for each group
     mutate(mean = !!sym(paste0("b_", parameter)) + !!sym(paste0("r_", group))) %>%
+    # create forest plot
     ggplot(aes(y = grp, x = mean)) +
     stat_halfeye() +
     geom_vline(xintercept = 0, linetype = "dashed") +
