@@ -12,29 +12,33 @@ plan <- drake_plan(
   # load linguistic proximity matrix
   ling = loadMat(file_in("data/MARP_lingproximity.xlsx")),
   # fit bayesian multilevel models
-  # without linguistic covariance matrix
+  # null intercept-only model without linguistic covariance matrix
   m1.1 = fitModel(dLong, 
                   formula = bf(wellbeing ~ 1 + (1 | subscale/item) + (1 | iso) + 
                     (1 | denomination) + (1 | subject) + age + gender + gdp_scaled)),
+  # "religiosity" main effect model without linguistic covariance matrix
   m1.2 = fitModel(dLong, 
                   formula = bf(wellbeing ~ 1 + religion + (1 + religion | subscale/item) + 
                     (1 + religion | iso) + (1 + religion | denomination) + (1 | subject) + 
                     age + gender + gdp_scaled)),
+  # "religiosity * cultural norms" interaction model without linguistic covariance matrix
   m1.3 = fitModel(dLong, formula = bf(wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + 
                     (1 + religion*cnorm | iso) + (1 + religion*cnorm | denomination) + (1 | subject) + 
                     age + gender + gdp_scaled)),
-  # with linguistic covariance matrix
+  # null intercept-only model with linguistic covariance matrix
   m2.1 = fitModel(dLong, 
                   formula = bf(wellbeing ~ 1 + (1 | subscale/item) + 
                     (1 | gr(iso, cov = ling)) + (1 | denomination) + (1 | subject) + 
                     age + gender + gdp_scaled), 
                   cov = list(ling = ling)),
+  # "religiosity" main effect model with linguistic covariance matrix
   m2.2 = fitModel(dLong, 
                   formula = bf(wellbeing ~ 1 + religion + (1 + religion | subscale/item) + 
                     (1 | gr(iso, cov = ling, id = "iso")) + (0 + religion | gr(iso, id = "iso")) + 
                     (1 + religion | denomination) + (1 | subject) + 
                     age + gender + gdp_scaled), 
                   cov = list(ling = ling)),
+  # "religiosity * cultural norms" interaction model with linguistic covariance matrix
   m2.3 = fitModel(dLong, 
                   formula = bf(wellbeing ~ 1 + religion*cnorm + (1 + religion*cnorm | subscale/item) + 
                     (1 | gr(iso, cov = ling, id = "iso")) + (0 + religion*cnorm | gr(iso, id = "iso")) + 

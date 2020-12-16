@@ -15,17 +15,13 @@ loadWideData <- function(file) {
       # fill in denomination
       # NOTE: we currently leave religious denomination groupings as they
       # appear in the dataset, but we will create higher-level groupings
-      # if this approach creates model fitting functions
+      # if this approach creates model fitting problems
       denomination = factor(ifelse(is.na(denomination), 
                                    "No denomination specified",
                                    denomination)),
       # add iso codes to dataset
       iso = factor(as.character(iso[country]))
       ) %>%
-    # reduced slice of data for toy models (1 person per country and denomination)
-    group_by(iso, denomination) %>%  # remove these 3
-    slice(1) %>%                     # lines before
-    ungroup() %>%                    # real analysis
     # remove participants who failed attention check
     filter(attention_check == 1) %>%
     # standardise age and create cnorm composite
