@@ -1,7 +1,7 @@
 # drake plan
 plan <- drake_plan(
   # load wide data
-  dWide = loadWideData(file_in("data/MARP_data_blinded.csv")),
+  dWide = loadWideData(file_in("data/MARP_data.csv")),
   # fit religion pca and get scree plot
   pca1 = fitPCA(dWide, nfactors = 9),
   pca2 = fitPCA(dWide, nfactors = 1),
