@@ -18,7 +18,7 @@ loadWideData <- function(file) {
       # if this approach creates model fitting problems
       denomination = factor(ifelse(is.na(denomination), 
                                    "No denomination specified",
-                                   denomination)),
+                                   as.character(denomination))),
       # add iso codes to dataset
       iso = factor(as.character(iso[country]))
       ) %>%
@@ -95,11 +95,11 @@ fitModel <- function(dLong, formula, cov = NULL) {
     # set identical priors for every model
     prior = c(prior(normal(0, 2), class = Intercept), # prior choices from prior predictive checks
               prior(normal(0, 0.5), class = b),       # these priors give every ordinal outcome (1-5)
-              prior(exponential(3), class = sd)),     # equal prior plausibility
-    # run for 3000 iterations (1500 warmup) with 4 cores
-    iter = 3000, cores = 4,
-    # additional control parameters for stan
-    control = list(adapt_delta = 0.99, max_treedepth = 15)
+              prior(exponential(4), class = sd)),     # equal prior plausibility
+    # run for 2500 iterations (1250 warmup) with 4 cores
+    iter = 2500, cores = 4,
+    # controls parameters for stan
+    control = list(adapt_delta = 0.99)
   )
 }
 

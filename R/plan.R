@@ -47,12 +47,12 @@ plan <- drake_plan(
                   cov = list(ling = ling)),
   # leave-one-out cross-validation
   looObs = obs_idx(loo1.1),
-  loo1.1 = loo_subsample(m1.1, observations = 2500),
-  loo1.2 = loo_subsample(m1.2, observations = looObs),
-  loo1.3 = loo_subsample(m1.3, observations = looObs),
-  loo2.1 = loo_subsample(m2.1, observations = looObs),
-  loo2.2 = loo_subsample(m2.2, observations = looObs),
-  loo2.3 = loo_subsample(m2.3, observations = looObs),
+  loo1.1 = loo_subsample(m1.1, cores = 64, observations = 100),
+  loo1.2 = loo_subsample(m1.2, cores = 64, observations = looObs),
+  loo1.3 = loo_subsample(m1.3, cores = 64, observations = looObs),
+  loo2.1 = loo_subsample(m2.1, cores = 64, observations = looObs),
+  loo2.2 = loo_subsample(m2.2, cores = 64, observations = looObs),
+  loo2.3 = loo_subsample(m2.3, cores = 64, observations = looObs),
   # model comparison
   looCompare1 = loo_compare(loo1.1, loo1.2),
   looCompare2 = loo_compare(loo1.2, loo1.3),

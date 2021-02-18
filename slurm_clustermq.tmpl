@@ -3,8 +3,8 @@
 #SBATCH --job-name={{ job_name }}           # job name
 #SBATCH --output=worker.%A_%a.out           # you can add .%a for array index
 #SBATCH --error=worker.%A_%a.err            # log file
-#SBATCH --mem=30000                         # memory (mb)
-#SBATCH --time=24:00:00                     # Walltime (DD-HH:MM:SS)
+#SBATCH --mem=90000                         # memory (mb)
+#SBATCH --time=00-02:00:00                  # Walltime (DD-HH:MM:SS)
 #SBATCH --array=1-{{ n_jobs }}              # job array
-#SBATCH --cpus-per-task=4                   # 4 CPUs
+#SBATCH --cpus-per-task=64                  # 64 CPUs
 CMQ_AUTH={{ auth }} R --no-save --no-restore -e 'clustermq:::worker("{{ master }}")'
