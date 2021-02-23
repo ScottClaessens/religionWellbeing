@@ -8,5 +8,4 @@ source("R/plan.R")
 make(plan,
      #jobs = 1,
      #parallelism = "clustermq",
-     lock_envir = FALSE,
-     targets = c("report"))
+     lock_envir = FALSE)

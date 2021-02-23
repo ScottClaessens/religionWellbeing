@@ -92,5 +92,11 @@ plan <- drake_plan(
     knitr_in("report.Rmd"),
     output_file = file_out("report.html"),
     quiet = TRUE
+  ),
+  # render README
+  readme = rmarkdown::render(
+    knitr_in("README.Rmd"),
+    output_file = file_out("README.md"),
+    quiet = TRUE
   )
 )
