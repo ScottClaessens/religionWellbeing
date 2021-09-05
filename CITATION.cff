@@ -1,0 +1,39 @@
+# YAML 1.2
+---
+authors: 
+  -
+    affiliation: "University of Auckland"
+    family-names: Claessens
+    given-names: Scott
+    orcid: "https://orcid.org/0000-0002-3562-6981"
+  -
+    affiliation: "University of Auckland"
+    family-names: Fischer
+    given-names: Kyle
+    orcid: "https://orcid.org/0000-0001-7204-1125"
+  -
+    affiliation: "University of Auckland"
+    family-names: Forsyth
+    given-names: "Guy Lavender"
+    orcid: "https://orcid.org/0000-0003-3077-7112"
+  -
+    affiliation: "University of Auckland"
+    family-names: Kyritsis
+    given-names: Thanos
+    orcid: "https://orcid.org/0000-0003-2790-1813"
+  -
+    affiliation: "University of Auckland"
+    family-names: Atkinson
+    given-names: "Quentin Douglas"
+    orcid: "https://orcid.org/0000-0002-8499-7535"
+cff-version: "1.1.0"
+date-released: 2021-02-24
+doi: "10.5281/zenodo.2113"
+keywords: 
+  - religion
+  - wellbeing
+  - "many analysts"
+message: "Please cite this analytic writeup as below."
+repository-code: "https://github.com/ScottClaessens/religionWellbeing"
+title: "Religion, Cultural Norms, and Wellbeing: A Bayesian Multilevel Analysis"
+...
