@@ -126,3 +126,22 @@ forest <- function(model, parameter, group) {
     geom_vline(xintercept = 0, linetype = "dashed") +
     labs(y = NULL, x = parameter)
 }
+
+# forest plot for wellbeing items
+forest2 <- function(model, parameter) {
+  model %>%
+    # use tidybayes to spread posterior samples
+    spread_draws(!!sym(paste0("b_", parameter)), r_subscale[subscale,par], `r_subscale:item`[grp,par]) %>%
+    # filter to parameter of interest
+    filter(par == parameter) %>%
+    # filter items matched with subscales
+    filter(subscale == sub("\\_.*", "", grp)) %>%
+    mutate(item = sub(".*?\\_", "", grp)) %>%
+    # get means for each group
+    mutate(mean = !!sym(paste0("b_", parameter)) + r_subscale + `r_subscale:item`) %>%
+    # create forest plot
+    ggplot(aes(y = item, x = mean)) +
+    stat_halfeye() +
+    geom_vline(xintercept = 0, linetype = "dashed") +
+    labs(y = NULL, x = parameter)
+}

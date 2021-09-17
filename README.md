@@ -2,7 +2,7 @@ Religion, Cultural Norms, and Wellbeing: A Bayesian Multilevel Analysis
 ================
 Scott Claessens, Kyle Fischer, Guy Lavender Forsyth, Thanos Kyritsis,
 and Quentin Atkinson
-2021-02-24
+2021-09-17
 
 # Analytic Strategy
 
@@ -147,8 +147,8 @@ linguistic proximity between countries.*</span><br><br>
 This positive effect of religiosity holds for social, psychological, and
 physical wellbeing subscales, and most individual wellbeing items (the
 effect is particularly pronounced for meaningfulness), though the 95%
-credible intervals include zero for mobility, negative affect, physical
-pain, and medical dependence (Figure 3). The positive effect of
+credible intervals either include zero or fall below zero for mobility,
+physical pain, and medical dependence (Figure 3). The positive effect of
 religiosity on wellbeing also holds for most countries in the sample,
 but the 95% credible intervals overlap with zero for Singapore, the
 Netherlands, the UK, Spain, Denmark, Chile, and Canada (Figure 4). The
@@ -226,14 +226,11 @@ indicates that it is likely due to variation in the interaction effect
 across individual wellbeing items and individual countries. How does the
 interaction effect fare across individual wellbeing items? Figure 7
 supports the hypothesised positive interaction effect for most
-individual wellbeing items, including general satisfaction with health,
-energy for everyday life, satisfaction with sleep, ability to perform
-daily living activities, ability to concentrate, acceptance of bodily
-appearance, satisfaction with oneself, frequency of negative feelings,
-satisfaction with personal relationships, and satisfaction with sex
-life. However, we find that the interaction effect is negative for
-wellbeing items capturing pain, medical dependence, and mobility, and
-for others the 95% credible interval includes zero.
+individual wellbeing items. However, we find that the interaction effect
+is negative for wellbeing items capturing pain, medical dependence, and
+mobility. We also find that the 95% credible intervals include zero for
+the items “How would you rate your quality of life?” and “How satisfied
+are you with the support you get from your friends?”.
 
 ![](README_files/figure-gfm/f1.3.2-1.svg)<!-- -->
 
@@ -274,8 +271,9 @@ medians, lines are 66% and 95% credible intervals.*</span><br><br>
 
 Most of these results are unchanged when controlling for linguistic
 proximity between countries, except that in this model the 95% credible
-intervals for the interaction effect include zero for some wellbeing
-items (mobility and personal relations).
+intervals for the interaction effect include zero for two additional
+wellbeing items: “How much do you enjoy life?” and “To what extent do
+you feel your life to be meaningful?”.
 
 # References
 
